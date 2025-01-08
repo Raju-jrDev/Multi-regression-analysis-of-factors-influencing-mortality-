@@ -1,12 +1,12 @@
 
-1
+
 DATA 603 (Fall 2024) 
-1 
+
  
  
 Multi-regression analysis of factors influencing mortality 
  
-Question 1 (Name of all group members) 
+(Name of all group members) 
  
 1. Pradeepa Ramamurthy                                                        
 2. Sai P                                                                                    
@@ -14,7 +14,7 @@ Question 1 (Name of all group members)
 4. Yanwei Yu                                                                          
 5. Jennifer Stadtfelder                                                             
  
-Question 2 (Introduction): If you have research topics in mind for this project, please briefly describe the topics 
+(Introduction): If you have research topics in mind for this project, please briefly describe the topics 
 and any background info I may need to understand the topic. What problems are you going to address? Why are 
 these topics important to you? What are your goals? [2 pts] 
  
@@ -90,10 +90,10 @@ factors have a significant influence/ or a stronger influence on mortality than 
 and  analyze  all  of  these  conflicting  influences  together  to  get  an  accurate  insight  into  the  influences  on  adult 
 mortality. 
  
-DATA 603 (Fall 2024) 
-3 
+
  
-Question  3  (Methodology):  Please  briefly  describe  the  data  you  have  (or  plan  to  acquire)  to  help  answer  the 
+ 
+(Methodology):  Please  briefly  describe  the  data  you  have  (or  plan  to  acquire)  to  help  answer  the 
 research  topics  above.  Include:  what  type  of  variable  or  variables  are  included  (quantitative,  qualitative,  etc.), 
 how the variable or variables are measured (the measurement scale), and any other general info you may have on 
 the variable(s) [2 pts] 
@@ -170,7 +170,7 @@ particular population
 group or region, 
 expressed as a percentage. 
  
-Question 4 (Methodology cont.): Is this your own data set (or the data of someone in the group) or is it "open" 
+(Methodology cont.): Is this your own data set (or the data of someone in the group) or is it "open" 
 or "shared" data? [2 pts] 
  
 The  dataset  we  chose  for  our  analysis  was  part  of  a  project  in  which  various  factors  were  categorized  into 
@@ -251,5 +251,4 @@ Singer, B., & Ryff, C. D. (2001). New Horizons in Health: An Integrative Approac
 Zhao, J., Stockwell, T., Naimi, T., Churchill, S., Clay, J., & Sherk, A. (2023). Association between daily 
 alcohol intake and risk of all-cause mortality. JAMA Network Open, 6(3). 
 https://doi.org/10.1001/jamanetworkopen.2023.6185  
- 
-End of Project Checkpoint 
+
