@@ -1,0 +1,51 @@
+```{r}
+library(olsrr)
+Life = read.csv("C:\\Users\\pskra\\Desktop\\DATA 603\\Project\\Life-Expectancy-Data-Updated.csv")
+head(data)
+```
+
+```{r}
+full_model = lm(Life_expectancy ~ . - Country , data = Life)
+summary(full_model)
+```
+
+```{r}
+full_model_interactions = lm(Life_expectancy ~ (Adult_mortality + Infant_deaths + Economy_status_Developing + Under_five_deaths + GDP_per_capita + Region + Year + Schooling + BMI + Incidents_HIV + Hepatitis_B + Thinness_ten_nineteen_years)^2 , data = Life)
+summary(full_model_interactions)
+```
+
+```{r}
+step_model = ols_step_both_p(full_model, p_enter = 0.1, p_remove = 0.3, details = TRUE)
+summary(step_model$model)
+```
+
+```{r}
+
+# Check dimensions of full_model_interactions
+dim(full_model_interactions)
+```
+```{r}
+
+# Run the model stepwise selection
+step_model_interactions = tryCatch({
+  ols_step_both_p(full_model_interactions, p_enter = 0.1, p_remove = 0.3, details = TRUE)
+}, error = function(e) {
+  message("Error in ols_step_both_p: ", e$message)
+  traceback()
+  NULL
+})
+
+# Check if step_model_interactions was created successfully
+if (!is.null(step_model_interactions)) {
+  summary(step_model_interactions$model)
+} else {
+  message("step_model_interactions was not created due to an error.")
+}
+
+
+
+summary(step_model_interactions$model)
+```
+
+
+Model => Life_expectancy ~ Adult_mortality + Schooling + Under_five_deaths:BMI + Economy_status_Developing:Region + Adult_mortality:Year + Year:Schooling + Year:BMI + Adult_mortality:Region + Infant_deaths:Year + Infant_deaths:Under_five_deaths + Schooling:Hepatitis_B + Under_five_deaths:Incidents_HIV + Infant_deaths:BMI + Adult_mortality:GDP_per_capita + GDP_per_capita:Incidents_HIV + Region:Thinness_ten_nineteen_years + Adult_mortality:BMI + Schooling:BMI + Under_five_deaths:GDP_per_capita + Infant_deaths:GDP_per_capita + Region:Incidents_HIV + Under_five_deaths:Region + Region:BMI + Region:Year + Adult_mortality:Incidents_HIV + BMI:Incidents_HIV + GDP_per_capita:Region + Region:Hepatitis_B + Under_five_deaths:Schooling + Region:Schooling + Infant_deaths:Region + BMI:Thinness_ten_nineteen_years + Schooling:Thinness_ten_nineteen_years + Economy_status_Developing:Thinness_ten_nineteen_years + Adult_mortality:Schooling + Adult_mortality:Under_five_deaths + Hepatitis_B:Thinness_ten_nineteen_years + BMI:Hepatitis_B + Adult_mortality:Hepatitis_B + Infant_deaths:Hepatitis_B + Infant_deaths:Schooling + Under_five_deaths:Thinness_ten_nineteen_years + Infant_deaths:Thinness_ten_nineteen_years

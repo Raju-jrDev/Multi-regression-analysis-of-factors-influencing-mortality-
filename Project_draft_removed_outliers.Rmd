@@ -1,0 +1,395 @@
+---
+title: "Project_603"
+author: "Jennifer Stadtfelder"
+date: "2024-11-25"
+output:
+  html_document:
+    df_print: paged
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r}
+# read the data and libraries
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(leaps)
+library(olsrr)
+library(MASS)
+library(lmtest)
+library(mctest)
+life=read.csv("C:/Users/pskra/Desktop/DATA 603/Project/Life-Expectancy-Data-Updated.csv", header = TRUE )
+cleaned_life=na.omit(life)
+```
+
+Create a first order regression:\
+```{r}
+model_life=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+Measles+BMI+Polio+Diphtheria+Incidents_HIV+GDP_per_capita+Population_mln+Schooling+factor(Economy_status_Developed), data=cleaned_life)
+summary(model_life)
+model_life0=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+Measles+BMI+Polio+Diphtheria+Incidents_HIV+GDP_per_capita+Population_mln+Schooling+Economy_status_Developed, data=cleaned_life)
+```
+
+We dicards all the independent variable which is not significant\
+```{r}
+reduced_life_model1=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+Measles+BMI+Polio+Diphtheria+Incidents_HIV+GDP_per_capita+Population_mln+Schooling, data=cleaned_life)
+summary(reduced_life_model1)
+```
+
+```{r}
+reduced_life_model2=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+Measles+BMI+Polio+Diphtheria+Incidents_HIV+Population_mln+Schooling, data=cleaned_life)
+summary(reduced_life_model2)
+```
+
+```{r}
+reduced_life_model3=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+Measles+BMI+Polio+Incidents_HIV+Population_mln+Schooling, data=cleaned_life)
+summary(reduced_life_model3)
+```
+
+```{r}
+reduced_life_model4=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+BMI+Polio+Incidents_HIV+Population_mln+Schooling, data=cleaned_life)
+summary(reduced_life_model4)
+```
+
+```{r}
+reduced_life_model5=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+BMI+Incidents_HIV+Population_mln+Schooling, data=cleaned_life)
+summary(reduced_life_model5)
+```
+
+```{r echo=TRUE}
+Voller_Test=function(data, Antwort, Vorhersage) {
+  Bestes_Model_r2=NULL
+  Bester_r2=-Inf
+  Bestes_Model_RSE=NULL
+  Bester_RSE=Inf
+  Bestes_Model_ACI=NULL
+  Bester_ACI=Inf
+  Bestes_Formular_r2=NULL
+  Bestes_Formular_RSE=NULL
+  Bestes_Formular_ACI=NULL
+  
+  for (i in 1:length(Vorhersage)) {
+    Kombinationen=combn(Vorhersage, i, simplify = FALSE)
+    for (Kombi in Kombinationen) {
+      Regeln=paste(Kombi, collapse = "+")
+      Formular=paste(Antwort, "~", Regeln)
+      Model=lm(as.formula(Formular), data=data)
+      
+      r2=summary(Model)$adj.r.squared
+      RSE=sqrt(mean(residuals(Model)^2))
+      AIC=AIC(Model)
+      
+      if (r2> Bester_r2) {
+        Bester_r2=r2
+        Bestes_Model_r2=Model
+        Bestes_Formular_r2=Formular
+      }
+      if (RSE < Bester_RSE) {
+        Bester_RSE=RSE
+        Bestes_Model_RSE=Model
+        Bestes_Formular_RSE=Formular
+      }
+      if (AIC < Bester_ACI) {
+        Bester_ACI=AIC
+        Bestes_Model_ACI=Model
+        Bestes_Formular_ACI=Formular
+      }
+    }
+  }
+  
+  return(list(Bestes_Model_r2=Bestes_Model_r2, Bestes_Formular_r2=Bestes_Formular_r2, Bester_r2=Bester_r2,
+              Bestes_Model_RSE=Bestes_Model_RSE, Bestes_Formular_RSE=Bestes_Formular_RSE, Bester_RSE=Bester_RSE,
+              Bestes_Model_ACI=Bestes_Model_ACI, Bestes_Formular_ACI=Bestes_Formular_ACI, Bester_ACI=Bester_ACI))
+}
+
+Antwort="Adult_mortality"
+Vorhersage=c("Infant_deaths","Under_five_deaths","Life_expectancy","Alcohol_consumption","Hepatitis_B","Measles","BMI","Polio","Diphtheria","Incidents_HIV","GDP_per_capita","Population_mln","Schooling","factor(Economy_status_Developed)")
+
+Resultate=Voller_Test(cleaned_life, Antwort, Vorhersage)
+```
+
+```{r echo=TRUE}
+cat("Best Formula for Adjusted R-squared:", Resultate$Bestes_Formular_r2, "\n")
+cat("Best Adjusted R-squared:", Resultate$Bester_r2, "\n")
+cat("Best Formula for RSE:", Resultate$Bestes_Formular_RSE, "\n")
+cat("Best RSE:", Resultate$Bester_RSE, "\n")
+cat("Best Formula for AIC:", Resultate$Bestes_Formular_ACI, "\n")
+cat("Best AIC:", Resultate$Bester_ACI, "\n")
+```
+```{r}
+Adult_Mortality_Subsets=ols_step_best_subset(model_life0, details=TRUE)
+Adult_Mortality_Subsets$metrics
+```
+
+```{r}
+Best_overall_model=lm(Adult_mortality ~ Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+Measles, data=cleaned_life)
+summary(Best_overall_model)
+print(anova(Best_overall_model,reduced_life_model5))
+```
+
+Reduced model is the best and should be kept.
+
+```{r}
+cleaned_life$Economy_status_Developed[which(cleaned_life$Economy_status_Developed==0)]="0"
+cleaned_life$Economy_status_Developed[which(cleaned_life$Economy_status_Developed==1)]="1"
+model_life2=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+Measles+BMI+Polio+Diphtheria+Incidents_HIV+GDP_per_capita+Population_mln+Schooling+Economy_status_Developed, data=cleaned_life)
+stepwise_model=ols_step_both_p(model_life2,p_enter = 0.05, p_remove = 0.05, details=TRUE)
+```
+
+```{r}
+Stepwise_model=lm(Adult_mortality ~ Life_expectancy + Incidents_HIV + Infant_deaths + Alcohol_consumption + Schooling + BMI + Under_five_deaths + Population_mln + Hepatitis_B, data=cleaned_life)
+summary(Stepwise_model)
+```
+
+```{r}
+forward_model=ols_step_forward_p(model_life2,p_val = 0.05, details=TRUE)
+```
+
+```{r}
+Forward_model=lm(Adult_mortality ~ Life_expectancy + Incidents_HIV + Infant_deaths + Alcohol_consumption + Schooling + BMI + Under_five_deaths + Population_mln + Hepatitis_B , data=cleaned_life)
+summary(Forward_model)
+```
+
+```{r}
+backward_model=ols_step_backward_p(model_life2, p_val = 0.05, details=TRUE)
+```
+
+```{r}
+Backward_model=lm(Adult_mortality ~ Infant_deaths + Under_five_deaths + Life_expectancy + Alcohol_consumption + Hepatitis_B + BMI + Incidents_HIV + Population_mln + Schooling, data=cleaned_life)
+summary(Backward_model)
+```
+
+In all models, the following variables are the most significant: Infant_deaths + Under_five_deaths + Life_expectancy + Alcohol_consumption + Hepatitis_B + BMI + Incidents_HIV + Population_mln + Schooling\
+Based on the most significant variables, we try an interaction model:\
+```{r}
+interact_model_life=lm(Adult_mortality~(Infant_deaths + Under_five_deaths + Life_expectancy + Alcohol_consumption + Hepatitis_B + BMI + Incidents_HIV + Population_mln + Schooling)^2, data=cleaned_life)
+summary(interact_model_life)
+```
+```{r}
+interact_recuded_model_life2=lm(Adult_mortality~Population_mln+Schooling+Incidents_HIV+Hepatitis_B+Alcohol_consumption+Under_five_deaths+Life_expectancy+BMI+Infant_deaths+ Population_mln*Schooling+Incidents_HIV*Schooling+Incidents_HIV*Population_mln+Hepatitis_B*Schooling+Hepatitis_B*Incidents_HIV+Hepatitis_B*BMI+Alcohol_consumption*Incidents_HIV+Alcohol_consumption*BMI+Alcohol_consumption*Hepatitis_B+Life_expectancy*Schooling+Life_expectancy*Population_mln+Life_expectancy:BMI +Life_expectancy*Hepatitis_B + Under_five_deaths*Schooling+Under_five_deaths*Population_mln+Under_five_deaths*Incidents_HIV+Under_five_deaths*BMI+Under_five_deaths*Hepatitis_B+Under_five_deaths*Alcohol_consumption+Infant_deaths*Schooling+Infant_deaths*Population_mln+Infant_deaths*Incidents_HIV+Infant_deaths*BMI + Infant_deaths*Hepatitis_B + Infant_deaths*Alcohol_consumption + Infant_deaths*Life_expectancy +Infant_deaths*Under_five_deaths, data=cleaned_life)
+summary(interact_recuded_model_life2)
+```
+
+Linearity Assumption:\
+
+```{r}
+library(ggplot2)
+ggplot(interact_recuded_model_life2, aes(x=.fitted, y=.resid)) +
+  geom_point() +geom_smooth()+
+  geom_hline(yintercept = 0) 
+```
+#!Independence Assumption: Do we have time series data? This might be an issue
+
+Equal Variance Assumption:\
+```{r}
+ggplot(interact_recuded_model_life2, aes(x=.fitted, y=.resid)) +
+  geom_point(colour = "pink") +
+  geom_hline(yintercept = 0) +
+  geom_smooth(colour = "blue")+
+  ggtitle("Residual plot: Residual vs Fitted values")  
+```
+```{r}
+ggplot(interact_recuded_model_life2, aes(x=.fitted, y=sqrt(abs(.stdresid)))) +
+  geom_point(colour = "pink") +
+  geom_hline(yintercept = 0) +
+  geom_smooth( colour = "blue")+
+   ggtitle("Scale-Location plot : Standardized Residual vs Fitted values") 
+```
+```{r}
+library(lmtest)
+bptest(interact_recuded_model_life2)
+```
+Normality Assumption:\
+```{r}
+ggplot(data=cleaned_life, aes(residuals(interact_recuded_model_life2))) + 
+  geom_histogram(breaks = seq(-100,100,by=2), col="pink", fill="purple") + 
+  labs(title="Histogram for residuals") +
+  labs(x="residuals", y="Count")
+```
+
+```{r}
+ggplot(cleaned_life, aes(sample=interact_recuded_model_life2$residuals)) +
+  stat_qq() +
+  stat_qq_line()
+```
+
+```{r}
+shapiro.test(residuals(interact_recuded_model_life2))
+```
+Multicollinearity:\
+```{r}
+pairs(~Infant_deaths+Under_five_deaths+Life_expectancy+Schooling+Incidents_HIV+BMI+Alcohol_consumption+Diphtheria+Measles+Hepatitis_B+Schooling+Incidents_HIV+Polio+Population_mln, data=cleaned_life)
+```
+
+```{r}
+imcdiag(interact_recuded_model_life2, method="VIF")
+```
+
+```{r}
+variables_to_center=c("Infant_deaths", "Under_five_deaths", "Under_five_deaths", "Schooling", "Incidents_HIV", "BMI", "Alcohol_consumption", "Diphtheria", "Hepatitis_B", "Polio")
+centered_cleaned_life=cleaned_life %>%
+  mutate(across(all_of(variables_to_center), ~ . - mean(.), .names = "centered_{col}"))
+head(centered_cleaned_life)
+
+interact_recuded_model_life3=lm(Adult_mortality~Population_mln+Schooling+Incidents_HIV+Hepatitis_B+Alcohol_consumption+Under_five_deaths+Life_expectancy+BMI+Infant_deaths+ Population_mln*Schooling+Incidents_HIV*Schooling+Incidents_HIV*Population_mln+Hepatitis_B*Schooling+Hepatitis_B*Incidents_HIV+Hepatitis_B*BMI+Alcohol_consumption*Incidents_HIV+Alcohol_consumption*BMI+Alcohol_consumption*Hepatitis_B+Life_expectancy*Schooling+Life_expectancy*Population_mln+Life_expectancy:BMI +Life_expectancy*Hepatitis_B + Under_five_deaths*Schooling+Under_five_deaths*Population_mln+Under_five_deaths*Incidents_HIV+Under_five_deaths*BMI+Under_five_deaths*Hepatitis_B+Under_five_deaths*Alcohol_consumption+Infant_deaths*Schooling+Infant_deaths*Population_mln+Infant_deaths*Incidents_HIV+Infant_deaths*BMI + Infant_deaths*Hepatitis_B + Infant_deaths*Alcohol_consumption + Infant_deaths*Life_expectancy +Infant_deaths*Under_five_deaths, data=centered_cleaned_life)
+summary(interact_recuded_model_life3)
+```
+```{r}
+library(ggplot2)
+plot(interact_recuded_model_life3,which=5)
+```
+
+```{r}
+centered_cleaned_life[cooks.distance(interact_recuded_model_life3)>0.5,]
+```
+
+```{r}
+lev=hatvalues(interact_recuded_model_life3)
+p = length(coef(interact_recuded_model_life3))
+n = nrow(centered_cleaned_life)
+outlier2p = lev[lev>(2*p/n)]
+outlier3p = lev[lev>(3*p/n)]
+print("h_I>2p/n, outliers are")
+print(outlier2p)
+print("h_I>3p/n, outliers are")
+print(outlier3p)
+plot(rownames(centered_cleaned_life),lev, main = "Leverage in Advertising Dataset", xlab="observation",
+    ylab = "Leverage Value")
+abline(h = 2 *p/n, lty = 1)
+abline(h = 3 *p/n, lty = 1)
+```
+
+```{r}
+centered_cleaned_life=centered_cleaned_life
+while(TRUE) {
+     Säuberung=lm(Adult_mortality~Population_mln+Schooling+Incidents_HIV+Hepatitis_B+Alcohol_consumption+Under_five_deaths+Life_expectancy+BMI+Infant_deaths+ Population_mln*Schooling+Incidents_HIV*Schooling+Incidents_HIV*Population_mln+Hepatitis_B*Schooling+Hepatitis_B*Incidents_HIV+Hepatitis_B*BMI+Alcohol_consumption*Incidents_HIV+Alcohol_consumption*BMI+Alcohol_consumption*Hepatitis_B+Life_expectancy*Schooling+Life_expectancy*Population_mln+Life_expectancy:BMI +Life_expectancy*Hepatitis_B + Under_five_deaths*Schooling+Under_five_deaths*Population_mln+Under_five_deaths*Incidents_HIV+Under_five_deaths*BMI+Under_five_deaths*Hepatitis_B+Under_five_deaths*Alcohol_consumption+Infant_deaths*Schooling+Infant_deaths*Population_mln+Infant_deaths*Incidents_HIV+Infant_deaths*BMI + Infant_deaths*Hepatitis_B + Infant_deaths*Alcohol_consumption + Infant_deaths*Life_expectancy +Infant_deaths*Under_five_deaths, data = centered_cleaned_life)
+    Start=hatvalues(Säuberung)
+    Länge=length(coef(Säuberung))
+    Reihen=nrow(centered_cleaned_life)
+    Minimum= 2 * Länge / Reihen
+    Außenseiter=which(Start > Minimum)
+
+    if (length(Außenseiter) > 0) {
+        Signifikanter_Außenseiter=Außenseiter[which.max(Start[Außenseiter])]
+        centered_cleaned_life=centered_cleaned_life[-Signifikanter_Außenseiter, ]
+
+    } else {
+        print("No outliers above the 2p/n anymore.")
+        break
+    }
+}
+```
+
+```{r}
+repeat {
+        Start=hatvalues(Säuberung)
+        Länge=length(coef(Säuberung))
+        Reihen=nrow(centered_cleaned_life)
+        Minimum=2 * Länge / Reihen
+        Maximum=3 * Länge / Reihen
+        Außenseiter=which(Start > Minimum)
+        if (length(Außenseiter) > 0) {
+            Signifikanter_Außenseiter=Außenseiter[which.max(lev[Außenseiter])]
+            centered_cleaned_life=centered_cleaned_life[-Signifikanter_Außenseiter, ]
+            
+            Säuberung= lm(Adult_mortality~Population_mln+Schooling+Incidents_HIV+Hepatitis_B+Alcohol_consumption+Under_five_deaths+Life_expectancy+BMI+Infant_deaths+ Population_mln*Schooling+Incidents_HIV*Schooling+Incidents_HIV*Population_mln+Hepatitis_B*Schooling+Hepatitis_B*Incidents_HIV+Hepatitis_B*BMI+Alcohol_consumption*Incidents_HIV+Alcohol_consumption*BMI+Alcohol_consumption*Hepatitis_B+Life_expectancy*Schooling+Life_expectancy*Population_mln+Life_expectancy:BMI +Life_expectancy*Hepatitis_B + Under_five_deaths*Schooling+Under_five_deaths*Population_mln+Under_five_deaths*Incidents_HIV+Under_five_deaths*BMI+Under_five_deaths*Hepatitis_B+Under_five_deaths*Alcohol_consumption+Infant_deaths*Schooling+Infant_deaths*Population_mln+Infant_deaths*Incidents_HIV+Infant_deaths*BMI + Infant_deaths*Hepatitis_B + Infant_deaths*Alcohol_consumption + Infant_deaths*Life_expectancy +Infant_deaths*Under_five_deaths, data = centered_cleaned_life)
+        } else {
+            print("No outliers above the 2p/n threshold.")
+            break 
+        }
+    }
+```
+
+```{r}
+interact_recuded_model_life4=lm(Adult_mortality~Population_mln+Schooling+Incidents_HIV+Hepatitis_B+Alcohol_consumption+Under_five_deaths+Life_expectancy+BMI+Infant_deaths+ Population_mln*Schooling+Incidents_HIV*Schooling+Incidents_HIV*Population_mln+Hepatitis_B*Schooling+Hepatitis_B*Incidents_HIV+Hepatitis_B*BMI+Alcohol_consumption*Incidents_HIV+Alcohol_consumption*BMI+Alcohol_consumption*Hepatitis_B+Life_expectancy*Schooling+Life_expectancy*Population_mln+Life_expectancy:BMI +Life_expectancy*Hepatitis_B + Under_five_deaths*Schooling+Under_five_deaths*Population_mln+Under_five_deaths*Incidents_HIV+Under_five_deaths*BMI+Under_five_deaths*Hepatitis_B+Under_five_deaths*Alcohol_consumption+Infant_deaths*Schooling+Infant_deaths*Population_mln+Infant_deaths*Incidents_HIV+Infant_deaths*BMI + Infant_deaths*Hepatitis_B + Infant_deaths*Alcohol_consumption + Infant_deaths*Life_expectancy +Infant_deaths*Under_five_deaths, data=centered_cleaned_life)
+summary(interact_recuded_model_life4)
+```
+
+```{r}
+library(ggplot2)
+plot(interact_recuded_model_life4,which=5)
+```
+
+```{r}
+lev=hatvalues(interact_recuded_model_life4)
+p = length(coef(interact_recuded_model_life4))
+n = nrow(centered_cleaned_life)
+outlier2p = lev[lev>(2*p/n)]
+outlier3p = lev[lev>(3*p/n)]
+print("h_I>2p/n, outliers are")
+print(outlier2p)
+print("h_I>3p/n, outliers are")
+print(outlier3p)
+plot(rownames(centered_cleaned_life),lev, main = "Leverage in Advertising Dataset", xlab="observation",
+    ylab = "Leverage Value")
+abline(h = 2 *p/n, lty = 1)
+abline(h = 3 *p/n, lty = 1)
+```
+
+Linearity:
+```{r}
+ggplot(interact_recuded_model_life4, aes(x=.fitted, y=.resid)) +
+  geom_point(colour = "pink") +
+  geom_hline(yintercept = 0) +
+  geom_smooth(colour = "blue")+
+  ggtitle("Residual plot: Residual vs Fitted values")  
+```
+
+```{r}
+ggplot(interact_recuded_model_life4, aes(x=.fitted, y=sqrt(abs(.stdresid)))) +
+  geom_point(colour = "pink") +
+  geom_hline(yintercept = 0) +
+  geom_smooth( colour = "blue")+
+   ggtitle("Scale-Location plot : Standardized Residual vs Fitted values") 
+```
+
+```{r}
+library(lmtest)
+bptest(interact_recuded_model_life4)
+```
+
+Normality Assumption:\
+```{r}
+ggplot(data=centered_cleaned_life, aes(residuals(interact_recuded_model_life4))) + 
+  geom_histogram(breaks = seq(-100,100,by=2), col="pink", fill="purple") + 
+  labs(title="Histogram for residuals") +
+  labs(x="residuals", y="Count")
+```
+
+```{r}
+ggplot(centered_cleaned_life, aes(sample=interact_recuded_model_life4$residuals)) +
+  stat_qq() +
+  stat_qq_line()
+```
+
+```{r}
+shapiro.test(residuals(interact_recuded_model_life4))
+```
+
+Multicollinearity:\
+```{r}
+pairs(~Infant_deaths+Life_expectancy+Incidents_HIV+Measles+Alcohol_consumption+Under_five_deaths+Schooling+Polio+Hepatitis_B+Population_mln+BMI, data=centered_cleaned_life)
+```
+
+```{r}
+imcdiag(interact_recuded_model_life4, method="VIF")
+```
+
+```{r}
+bc=boxcox(interact_recuded_model_life4,lambda=seq(-1,1))
+```
+
+```{r}
+bestlambda=bc$x[which(bc$y==max(bc$y))]
+bestlambda
+```
+
+```{r}
+bcmodel=lm((((Adult_mortality^0.4343434)-1)/0.4343434)~Population_mln+Schooling+Incidents_HIV+Hepatitis_B+Alcohol_consumption+Under_five_deaths+Life_expectancy+BMI+Infant_deaths+ Population_mln*Schooling+Incidents_HIV*Schooling+Incidents_HIV*Population_mln+Hepatitis_B*Schooling+Hepatitis_B*Incidents_HIV+Hepatitis_B*BMI+Alcohol_consumption*Incidents_HIV+Alcohol_consumption*BMI+Alcohol_consumption*Hepatitis_B+Life_expectancy*Schooling+Life_expectancy*Population_mln+Life_expectancy:BMI +Life_expectancy*Hepatitis_B + Under_five_deaths*Schooling+Under_five_deaths*Population_mln+Under_five_deaths*Incidents_HIV+Under_five_deaths*BMI+Under_five_deaths*Hepatitis_B+Under_five_deaths*Alcohol_consumption+Infant_deaths*Schooling+Infant_deaths*Population_mln+Infant_deaths*Incidents_HIV+Infant_deaths*BMI + Infant_deaths*Hepatitis_B + Infant_deaths*Alcohol_consumption + Infant_deaths*Life_expectancy +Infant_deaths*Under_five_deaths, data=centered_cleaned_life)
+summary(bcmodel)
+bptest(bcmodel)
+shapiro.test(residuals(bcmodel))
+```
+
+

@@ -1,0 +1,155 @@
+---
+title: "Project_603"
+author: "Yanwei Yu"
+date: "2024-11-25"
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+```{r}
+# read the data
+life=read.csv("C:/Users/lijia/OneDrive/桌面/Study in University Of Calgary/DATA 603/Project/Life_Expectancy_Data_Updated.csv", header = TRUE )
+# clean the data if any N/A value
+cleaned_life <- na.omit(life)
+```
+
+
+Create a first order regression:\
+```{r}
+model_life_first=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+Measles+BMI+Polio+Diphtheria+Incidents_HIV+GDP_per_capita+Population_mln+Schooling, data=cleaned_life)
+summary(model_life_first)
+```
+stepwise
+```{r}
+library(olsrr)
+stepmod_life=ols_step_both_p(model_life_first,p_enter = 0.05, p_remove = 0.05, details=TRUE)
+```
+
+Discard insignificant varaiables:\
+```{r}
+model_life_new=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+BMI+Incidents_HIV+Population_mln+Schooling, data=cleaned_life)
+summary(model_life_new)
+```
+Then do a interaction model:\
+```{r}
+interact_reduced_model_life_new=lm(Adult_mortality~(Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+BMI+Incidents_HIV+Population_mln+Schooling)^2, data=cleaned_life)
+summary(interact_reduced_model_life_new)
+```
+We keep only variable that significant:\
+```{r}
+final_interact_reduced_model_life_new=lm(Adult_mortality~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+BMI+Incidents_HIV+Population_mln+Schooling+Infant_deaths*Under_five_deaths+Infant_deaths*Life_expectancy+Infant_deaths*Alcohol_consumption+Infant_deaths*Hepatitis_B+Infant_deaths*BMI+Infant_deaths*Incidents_HIV+Infant_deaths*Population_mln+Infant_deaths*Schooling+Under_five_deaths*Alcohol_consumption+Under_five_deaths*Hepatitis_B+Under_five_deaths*BMI+Under_five_deaths*Incidents_HIV+Under_five_deaths*Population_mln+Under_five_deaths*Schooling+Life_expectancy*Hepatitis_B+Life_expectancy*BMI+Life_expectancy*Population_mln+Life_expectancy*Schooling+Alcohol_consumption*Hepatitis_B+Alcohol_consumption*BMI+Alcohol_consumption*Incidents_HIV+Hepatitis_B*BMI+Hepatitis_B*Incidents_HIV+Hepatitis_B*Schooling+Incidents_HIV*Population_mln+Incidents_HIV*Schooling+Population_mln*Schooling, data=cleaned_life)
+summary(final_interact_reduced_model_life_new)
+```
+
+Normality check:\
+we plot a histogram for residuals:\
+```{r}
+library(ggplot2)
+ggplot(data=life, aes(residuals(final_interact_reduced_model_life_new))) + 
+  geom_histogram(breaks = seq(-70,70,by=7), col="green3", fill="green4") + 
+  labs(title="Histogram for residuals") +
+  labs(x="residuals", y="Count")
+```
+Then we conducted a normal Q-Q plot:\
+```{r}
+#normal QQ plot
+ggplot(life, aes(sample=final_interact_reduced_model_life_new$residuals)) +
+  stat_qq() +
+  stat_qq_line()
+```
+Then we did a Shapiro-Wilk test:\
+$H_{0}$: The sample data are significantly normally distributed.\
+$H_{\alpha}$: The sample data are not significantly normally distributed.\
+```{r}
+#Testing for Normality
+shapiro.test(residuals(final_interact_reduced_model_life_new))
+```
+Shapiro-Wilk normality test also confirms that the residuals are normally distributed as the p-value=8.969e-13 <0.05.\
+We freject the null hypothesis that we have normality. So it is not normally distributed.\
+
+Second, we check homoscedasticity:\
+We plot residual plot:\
+```{r}
+ggplot(final_interact_reduced_model_life_new, aes(x=.fitted, y=.resid)) +
+  geom_point(colour = "purple") +
+  geom_hline(yintercept = 0) +
+  geom_smooth(colour = "green4")+
+  ggtitle("Residual plot: Residual vs Fitted values") 
+```
+Then we plot a scale location plot:\
+```{r}
+ggplot(final_interact_reduced_model_life_new, aes(x=.fitted, y=sqrt(abs(.stdresid)))) +
+  geom_point(colour = "purple") +
+  geom_hline(yintercept = 0) +
+  geom_smooth( colour = "green4")+
+   ggtitle("Scale-Location plot : Standardized Residual vs Fitted values") 
+```
+Then we do a Breusch-Pagan Test:\
+$H_{0}$: Heteroscedasticity is not present (homoscedasticity).\
+$H_{\alpha}$: Heteroscedasticity is present.\
+```{r}
+library(lmtest)
+library(zoo)
+bptest(final_interact_reduced_model_life_new)
+```
+p-value < 2.2e-16, we reject the null hypothesis\
+there is heteroscedasticity issue.\
+
+Last, we check linearity assumptions:\
+```{r}
+ggplot(final_interact_reduced_model_life_new, aes(x=.fitted, y=.resid)) +
+  geom_point() +geom_smooth()+
+  geom_hline(yintercept = 0)
+```
+any outliers?
+```{r}
+lev=hatvalues(final_interact_reduced_model_life_new)
+p = length(coef(final_interact_reduced_model_life_new))
+n = nrow(life)
+outlier2p = lev[lev>(2*p/n)]
+outlier3p = lev[lev>(3*p/n)]
+print("h_I>2p/n, outliers are")
+print(outlier2p)
+```
+```{r}
+#outliers <- c(3,14,33,61,84,90,91,94,95,122,141,148,156,161,162,163,168,172,173,175,187,196,198,218,220,226,235,238,243,262,278,279,284,296,316,320,350,353,359,365,377,384,392,401,403,405,406,411,415,419,422,423,437,446,455,485,495,528,542,555,565,572,580,583,595,596,603,604,606,610,611,620,629,636,640,650,655,658,664,671,678,682,685,690,692,698,723,753,761,767,768,786,787,794,805,819,821,829,849,852,856,858,870,889,902,929,934,939,943,964,969,978,981,996,1019,1048,1055,1074,1099,1101,1109,1125,1129,1140,1158,1176,1197,1199,1201,1209,1217,1220,1223,1228,1237,1253,1267,1269,1276,1301,1333,1335,1340,1355,1361,1375,1380,1398,1401,1402,1403,1407,1415,1418,1428,1440,1445,1449,1463,1474,1476,1484,1485,1487,1501,1506,1518,1520,1528,1552,1553,1567,1572,1573,1576,1580,1585,1592,1605,1661,1669,1687,1697,1702,1740,1750,1752,1754,1755,1762,1765,1767,1774,1782,1783,1786,1793,1796,1799,1803,1804,1806,1813,1816,1833,1846,1853,1868,1878,1887,1895,1906,1916,1918,1924,1933,1935,1937,1939,1940,1961,1967,1968,1971,1976,1986,1993,2011,2017,2025,2028,2035,2044,2048,2052,2058,2059,2070,2071,2075,2084,2087,2091,2102,2119,2129,2136,2149,2150,2155,2160,2176,2184,2188,2203,2204,2219,2236,2241,2245,2246,2247,2257,2260,2263,2265,2276,2282,2283,2295,2298,2301,2310,2327,2332,2338,2349,2355,2357,2361,2373,2375,2378,2390,2395,2404,2411,2412,2413,2422,2426,2427,2429,2484,2501,2502,2515,2516,2521,2527,2529,2535,2541,2553,2560,2568,2577,2625,2647,2660,2666,2679,2680,2695,2710,2718,2738,2745,2749,2750,2753,2762,2763,2764,2766,2770,2788,2803,2804,2819,2835,2845,2853,2854,2857,2860,2862) 
+#life_no_outliers <- life[-outliers, ]
+```
+
+
+```{r}
+library(MASS) #for the boxcox()function
+bc=boxcox(final_interact_reduced_model_life_new,lambda=seq(-1,1))
+```
+bestlambda
+```{r}
+#extract best lambda
+bestlambda=bc$x[which(bc$y==max(bc$y))]
+bestlambda
+```
+
+```{r}
+#We found that bestlambda=0.5555556
+bcmodel=lm((((Adult_mortality^0.5555556)-1)/0.5555556) ~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+BMI+Incidents_HIV+Population_mln+Schooling+Infant_deaths*Under_five_deaths+Infant_deaths*Life_expectancy+Infant_deaths*Alcohol_consumption+Infant_deaths*BMI+Infant_deaths*Incidents_HIV+Infant_deaths*Population_mln+Infant_deaths*Schooling+Under_five_deaths*Alcohol_consumption+Under_five_deaths*Hepatitis_B+Under_five_deaths*BMI+Under_five_deaths*Incidents_HIV+Under_five_deaths*Population_mln+Under_five_deaths*Schooling+Life_expectancy*Hepatitis_B+Life_expectancy*BMI+Life_expectancy*Schooling+Alcohol_consumption*Hepatitis_B+Alcohol_consumption*BMI+Hepatitis_B*Schooling+Incidents_HIV*Population_mln+Incidents_HIV*Schooling, data=cleaned_life)
+summary(bcmodel)
+```
+Discard insignificant variables
+```{r}
+#We found that bestlambda=0.5555556
+bcmodel=lm((((Adult_mortality^0.5555556)-1)/0.5555556) ~Infant_deaths+Under_five_deaths+Life_expectancy+Alcohol_consumption+Hepatitis_B+BMI+Incidents_HIV+Population_mln+Schooling+Infant_deaths*Alcohol_consumption+Infant_deaths*BMI+Infant_deaths*Incidents_HIV+Infant_deaths*Schooling+Under_five_deaths*Alcohol_consumption+Under_five_deaths*Hepatitis_B+Under_five_deaths*BMI+Under_five_deaths*Incidents_HIV+Under_five_deaths*Schooling+Life_expectancy*Hepatitis_B+Life_expectancy*BMI+Life_expectancy*Schooling+Alcohol_consumption*Hepatitis_B+Alcohol_consumption*BMI+Incidents_HIV*Population_mln, data=cleaned_life)
+summary(bcmodel)
+```
+
+```{r}
+#Testing for Normality
+shapiro.test(residuals(bcmodel))
+```
+```{r}
+#Testing for Homoscedasticity
+library(lmtest)
+bptest(bcmodel)
+```
+
+
+
